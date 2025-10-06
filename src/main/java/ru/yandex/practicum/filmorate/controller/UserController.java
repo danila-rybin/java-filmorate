@@ -1,9 +1,9 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
@@ -22,10 +22,6 @@ public class UserController {
         log.info("Получен запрос на создание пользователя: {}", user);
         validate(user);
 
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-
         user.setId(++idCounter);
         users.put(user.getId(), user);
         log.info("Создан пользователь: {}", user);
@@ -38,8 +34,7 @@ public class UserController {
         validate(user);
 
         if (!users.containsKey(user.getId())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "Пользователь с id=" + user.getId() + " не найден");
+            throw new NotFoundException("Пользователь с id=" + user.getId() + " не найден");
         }
 
         users.put(user.getId(), user);
@@ -54,16 +49,16 @@ public class UserController {
 
     private void validate(User user) {
         if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Некорректный email");
+            throw new ValidationException("Некорректный email");
         }
         if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Некорректный логин");
+            throw new ValidationException("Некорректный логин");
+        }
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
         }
         if (user.getBirthday() == null || user.getBirthday().isAfter(LocalDate.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Дата рождения не может быть пустой или в будущем");
+            throw new ValidationException("Дата рождения не может быть пустой или в будущем");
         }
     }
 }

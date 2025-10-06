@@ -5,11 +5,8 @@ import lombok.*;
 import java.time.LocalDate;
 
 
-@Getter
-@Setter
-@ToString
+@Data
 @Builder
-@EqualsAndHashCode(of = {"id"})
 public class Film {
     private Long id;
     private String name;
