@@ -1,45 +1,40 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class FilmServiceImplementation implements FilmService {
 
-    private final Map<Long, Film> films = new HashMap<>();
-    private long idCounter = 0;
+    private final FilmStorage filmStorage;
 
     @Override
     public Film create(Film film) {
         validate(film);
-        film.setId(++idCounter);
-        films.put(film.getId(), film);
+        filmStorage.create(film);
         return film;
     }
 
     @Override
     public Film update(Film film) {
         validate(film);
+        filmStorage.findById(film.getId())
+                .orElseThrow(() -> new ru.yandex.practicum.filmorate.exception.NotFoundException("Фильм с id=" + film.getId() + " не найден"));
 
-        if (!films.containsKey(film.getId())) {
-            throw new ru.yandex.practicum.filmorate.exception.NotFoundException("Фильм с id=" + film.getId() + " не найден");
-        }
-
-        films.put(film.getId(), film);
-        return film;
+        return filmStorage.update(film);
     }
 
     @Override
     public List<Film> findAll() {
-        return new ArrayList<>(films.values());
+        return filmStorage.findAll();
     }
 
     private void validate(Film film) {
