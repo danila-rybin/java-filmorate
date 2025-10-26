@@ -40,7 +40,6 @@ public class FilmController {
                 .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
     }
 
-    // --- лайки ---
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable Long id, @PathVariable Long userId) {
         log.info("Пользователь {} ставит лайк фильму {}", userId, id);
@@ -53,7 +52,6 @@ public class FilmController {
         filmService.removeLike(id, userId);
     }
 
-    // --- популярные фильмы ---
     @GetMapping("/popular")
     public List<Film> getPopular(@RequestParam(defaultValue = "10") int count) {
         log.info("Запрос топ {} популярных фильмов", count);

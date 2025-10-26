@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class UserServiceImplementation {
+public class UserServiceImplementation implements UserService {
 
     private final UserStorage userStorage;
 
@@ -17,6 +17,21 @@ public class UserServiceImplementation {
         this.userStorage = userStorage;
     }
 
+    @Override
+    public User createUser(User user) {
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
+        return userStorage.create(user);
+    }
+
+    @Override
+    public User updateUser(User user) {
+        getUserById(user.getId()); // проверка на существование
+        return userStorage.update(user);
+    }
+
+    @Override
     public void addFriend(long userId, long friendId) {
         User user = getUserById(userId);
         User friend = getUserById(friendId);
@@ -25,6 +40,7 @@ public class UserServiceImplementation {
         friend.getFriends().add(userId);
     }
 
+    @Override
     public void removeFriend(long userId, long friendId) {
         User user = getUserById(userId);
         User friend = getUserById(friendId);
@@ -33,6 +49,7 @@ public class UserServiceImplementation {
         friend.getFriends().remove(userId);
     }
 
+    @Override
     public List<User> getFriends(long userId) {
         User user = getUserById(userId);
         return user.getFriends().stream()
@@ -40,6 +57,7 @@ public class UserServiceImplementation {
                 .collect(Collectors.toList());
     }
 
+    @Override
     public List<User> getCommonFriends(long userId, long otherId) {
         User user = getUserById(userId);
         User other = getUserById(otherId);
@@ -52,8 +70,15 @@ public class UserServiceImplementation {
                 .collect(Collectors.toList());
     }
 
-    private User getUserById(long id) {
+    @Override
+    public User getUserById(long id) {
         return userStorage.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
+    }
+
+    // новый метод
+    @Override
+    public List<User> findAll() {
+        return userStorage.findAll();
     }
 }
