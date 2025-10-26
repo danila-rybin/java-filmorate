@@ -37,6 +37,31 @@ public class FilmServiceImplementation implements FilmService {
         return filmStorage.findAll();
     }
 
+    @Override
+    public Optional<Film> findById(Long id) {
+        return filmStorage.findById(id);
+    }
+
+    public void addLike(Long filmId, Long userId) {
+        Film film = filmStorage.findById(filmId)
+                .orElseThrow(() -> new ru.yandex.practicum.filmorate.exception.NotFoundException("Фильм с id=" + filmId + " не найден"));
+        film.getLikes().add(userId);
+    }
+
+    public void removeLike(Long filmId, Long userId) {
+        Film film = filmStorage.findById(filmId)
+                .orElseThrow(() -> new ru.yandex.practicum.filmorate.exception.NotFoundException("Фильм с id=" + filmId + " не найден"));
+        film.getLikes().remove(userId);
+    }
+
+    public List<Film> getPopularFilms(int count) {
+        return filmStorage.findAll().stream()
+                .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
+                .limit(count)
+                .toList();
+    }
+
+
     private void validate(Film film) {
         if (film.getName() == null || film.getName().isBlank()) {
             throw new ru.yandex.practicum.filmorate.exception.ValidationException("Название фильма не может быть пустым");
