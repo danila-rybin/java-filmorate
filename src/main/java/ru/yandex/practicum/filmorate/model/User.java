@@ -1,36 +1,24 @@
 package ru.yandex.practicum.filmorate.model;
 
-import lombok.Data;
-import lombok.Builder;
 import jakarta.validation.constraints.*;
+import lombok.Data;
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
 
 @Data
-@Builder
 public class User {
-    private Long id;
+    private int id;
+
+    @NotBlank(message = "Электронная почта не может быть пустой")
+    @Email(message = "Электронная почта должна быть корректного формата")
+    private String email;
 
     @NotBlank(message = "Логин не может быть пустым")
     @Pattern(regexp = "\\S+", message = "Логин не может содержать пробелы")
     private String login;
 
-    @Email(message = "Почта должна быть корректной")
-    @NotBlank(message = "Почта не может быть пустой")
-    private String email;
-
-    @PastOrPresent(message = "День рождения не может быть в будущем")
-    private LocalDate birthday;
-
     private String name;
 
-    private final Set<Long> friends = new HashSet<>();
+    @PastOrPresent(message = "Дата рождения не может быть в будущем")
+    private LocalDate birthday;
 
-    // Метод для корректировки имени
-    public void fixName() {
-        if (name == null || name.isBlank()) {
-            name = login;
-        }
-    }
 }
