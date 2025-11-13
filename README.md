@@ -1,2 +1,18 @@
 # java-filmorate
-Template repository for Filmorate project.
+
+
+##  Схема базы данных
+
+![Database Diagram](FilmorateDiagram.svg)
+
+
+На диаграмме представлена структура базы данных приложения **Filmorate**.
+
+Основные таблицы:
+- `films` — хранит информацию о фильмах;
+- `users` — хранит информацию о пользователях;
+- `likes` — связи между пользователями и фильмами (лайки);
+- `friendships` — таблица дружбы между пользователями;
+- `genres`, `mpa_ratings`, `film_genres` — справочники и связи для жанров и рейтингов.
+
+---
