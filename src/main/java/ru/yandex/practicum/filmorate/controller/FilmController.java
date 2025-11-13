@@ -1,21 +1,26 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.controller.exception.ValidationException;
-import ru.yandex.practicum.filmorate.service.FilmService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.dto.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.controller.exception.ValidationException;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
 @RequestMapping("/films")
-public class FilmController extends BaseController<Film> {
+public class FilmController {
+
     private final FilmService filmService;
     private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
@@ -24,96 +29,51 @@ public class FilmController extends BaseController<Film> {
     }
 
     @PostMapping
-    public ResponseEntity<Object> addFilm(@Valid @RequestBody Film film) {
-        return addEntity(film);
+    public ResponseEntity<FilmDto> addFilm(@Valid @RequestBody FilmDto filmDto) throws ValidationException {
+        validateFilm(filmDto);
+        Film film = filmService.createFilm(FilmMapper.toEntity(filmDto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(FilmMapper.toDto(film));
     }
 
     @PutMapping
-    public ResponseEntity<Object> updateFilm(@Valid @RequestBody Film film) {
-        return updateEntity(film);
+    public ResponseEntity<FilmDto> updateFilm(@Valid @RequestBody FilmDto filmDto) throws ValidationException {
+        validateFilm(filmDto);
+        Film updatedFilm = filmService.updateFilm(FilmMapper.toEntity(filmDto));
+        return ResponseEntity.ok(FilmMapper.toDto(updatedFilm));
     }
 
     @GetMapping
-    public List<Film> getAllFilms() {
-        log.info("Получен запрос на получение всех фильмов. Количество фильмов: {}", filmService.getAllFilms().size());
-        return filmService.getAllFilms();
+    public List<FilmDto> getAllFilms() {
+        List<Film> films = filmService.getAllFilms();
+        return films.stream().map(FilmMapper::toDto).collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Object> getFilm(@PathVariable int id) {
-        try {
-            Film film = filmService.getFilmById(id);
-            return ResponseEntity.ok(film);
-        } catch (IllegalArgumentException e) {
-            log.error("Фильм с id {} не найден", id);
-            return createErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
+    public ResponseEntity<FilmDto> getFilm(@PathVariable int id) {
+        Film film = filmService.getFilmById(id);
+        return ResponseEntity.ok(FilmMapper.toDto(film));
     }
 
     @PutMapping("/{id}/like/{userId}")
-    public ResponseEntity<Object> addLike(@PathVariable int id, @PathVariable int userId) {
-        try {
-            filmService.addLike(id, userId);
-            log.info("Пользователь {} поставил лайк фильму {}", userId, id);
-            return ResponseEntity.ok(Map.of(
-                    "message", "Лайк успешно добавлен",
-                    "filmId", id,
-                    "userId", userId
-            ));
-        } catch (IllegalArgumentException e) {
-            log.error("Ошибка при добавлении лайка: {}", e.getMessage());
-            return createErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
+    public ResponseEntity<Void> addLike(@PathVariable int id, @PathVariable int userId) {
+        filmService.addLike(id, userId);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}/like/{userId}")
-    public ResponseEntity<Object> removeLike(@PathVariable int id, @PathVariable int userId) {
-        try {
-            filmService.removeLike(id, userId);
-            log.info("Пользователь {} удалил лайк с фильма {}", userId, id);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            log.error("Ошибка при удалении лайка: {}", e.getMessage());
-            return createErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
+    public ResponseEntity<Void> removeLike(@PathVariable int id, @PathVariable int userId) {
+        filmService.removeLike(id, userId);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/popular")
-    public List<Film> getPopularFilms(@RequestParam(name = "count", defaultValue = "10") int count) {
-        log.info("Получен запрос на получение {} популярных фильмов", count);
-        return filmService.getPopularFilms(count);
+    public List<FilmDto> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
+        List<Film> films = filmService.getPopularFilms(count);
+        return films.stream().map(FilmMapper::toDto).collect(Collectors.toList());
     }
 
-    @Override
-    protected ResponseEntity<Object> addEntity(Film film) {
-        log.info("Получен запрос на добавление фильма: {}", film);
-        try {
-            validateEntity(film);
-            Film createdFilm = filmService.createFilm(film);
-            log.info("Фильм успешно добавлен: {}", createdFilm);
-            return ResponseEntity.ok(createdFilm);
-        } catch (ValidationException e) {
-            log.warn("Ошибка валидации при добавлении фильма: {}", e.getMessage());
-            return createErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    @Override
-    protected ResponseEntity<Object> updateEntity(Film film) {
-        log.info("Получен запрос на обновление фильма: {}", film);
-
-        validateEntity(film);
-
-        Film updatedFilm = filmService.updateFilm(film);
-        log.info("Фильм успешно обновлен: {}", updatedFilm);
-        return ResponseEntity.ok(updatedFilm);
-    }
-
-    @Override
-    protected void validateEntity(Film film) throws ValidationException {
+    private void validateFilm(FilmDto film) throws ValidationException {
         if (film.getReleaseDate().isBefore(MIN_RELEASE_DATE)) {
-            log.error("Ошибка валидации: дата релиза {} раньше минимальной допустимой даты {}",
-                    film.getReleaseDate(), MIN_RELEASE_DATE);
             throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
         }
     }
