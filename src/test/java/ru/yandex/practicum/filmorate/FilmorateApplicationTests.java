@@ -8,6 +8,6 @@ class FilmorateApplicationTests {
 
 	@Test
 	void contextLoads() {
-		// Проверка, что контекст Spring Boot загружается без ошибок
+
 	}
 }

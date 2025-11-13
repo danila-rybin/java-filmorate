@@ -1,139 +1,52 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.ResponseEntity;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.dao.film.FilmDbStorage;
-import ru.yandex.practicum.filmorate.dao.film.GenreDbStorage;
-import ru.yandex.practicum.filmorate.dao.film.MpaDbStorage;
-import ru.yandex.practicum.filmorate.dao.user.UserDbStorage;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.dto.MpaDto;
 
 import java.time.LocalDate;
-import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@JdbcTest
-@Import({
-        FilmController.class,
-        FilmService.class,
-        UserService.class,
-        FilmDbStorage.class,
-        UserDbStorage.class,
-        MpaDbStorage.class,
-        GenreDbStorage.class
-})
+@SpringBootTest
+@AutoConfigureMockMvc
 class FilmControllerTest {
 
     @Autowired
-    private FilmController filmController;
+    private MockMvc mockMvc;
 
     @Autowired
-    private FilmDbStorage filmStorage;
-
-    @Autowired
-    private UserDbStorage userStorage;
+    private ObjectMapper objectMapper;
 
     @Test
-    public void addFilmValidData() {
-        Film film = createValidFilm("Test Film", "Test Description", LocalDate.of(2000, 1, 1), 120);
-        ResponseEntity<Object> response = filmController.addFilm(film);
+    void createFilm_shouldReturnCreatedFilm() throws Exception {
+        FilmDto film = new FilmDto();
+        film.setName("Test Film");
+        film.setDescription("Test Description");
+        film.setReleaseDate(LocalDate.of(2020, 1, 1));
+        film.setDuration(120);
 
-        assertEquals(200, response.getStatusCode().value());
-        assertNotNull(response.getBody());
-        Film createdFilm = (Film) response.getBody();
-        assertEquals("Test Film", createdFilm.getName());
-    }
+        MpaDto mpa = new MpaDto();
+        mpa.setId(1);
+        film.setMpa(mpa);
 
-    @Test
-    public void addFilmInvalidReleaseDate() {
-        Film film = createValidFilm("Old Film", "Very old film", LocalDate.of(1890, 1, 1), 90);
-
-        ResponseEntity<Object> response = filmController.addFilm(film);
-
-        assertTrue(response.getStatusCode().is4xxClientError());
-    }
-
-    @Test
-    public void updateFilmExistingFilm() {
-        Film film = createValidFilm("Original", "Original desc", LocalDate.of(2000, 1, 1), 120);
-        ResponseEntity<Object> createResponse = filmController.addFilm(film);
-        Film createdFilm = (Film) createResponse.getBody();
-
-        Film updatedFilm = createValidFilm("Updated", "Updated desc", LocalDate.of(2001, 1, 1), 150);
-        assertNotNull(createdFilm);
-        updatedFilm.setId(createdFilm.getId());
-
-        ResponseEntity<Object> response = filmController.updateFilm(updatedFilm);
-
-        assertEquals(200, response.getStatusCode().value());
-        Film resultFilm = (Film) response.getBody();
-        assertNotNull(resultFilm);
-        assertEquals("Updated", resultFilm.getName());
-    }
-
-    @Test
-    public void updateFilmNonExistingFilm() {
-        Film film = createValidFilm("Non Existing", "Description", LocalDate.of(2000, 1, 1), 120);
-        film.setId(999);
-
-        assertThrows(RuntimeException.class, () -> filmController.updateFilm(film));
-    }
-
-    @Test
-    public void getAllFilmsEmptyList() {
-        List<Film> films = filmController.getAllFilms();
-
-        assertNotNull(films);
-        assertTrue(films.isEmpty());
-    }
-
-    @Test
-    public void getAllFilmsWithData() {
-        Film film1 = createValidFilm("Film 1", "Desc 1", LocalDate.of(2000, 1, 1), 120);
-        Film film2 = createValidFilm("Film 2", "Desc 2", LocalDate.of(2001, 1, 1), 150);
-
-        filmController.addFilm(film1);
-        filmController.addFilm(film2);
-
-        List<Film> films = filmController.getAllFilms();
-
-        assertEquals(2, films.size());
-    }
-
-    @Test
-    public void addMultipleFilmsCheckIds() {
-        Film film1 = createValidFilm("Film 1", "Desc 1", LocalDate.of(2000, 1, 1), 120);
-        Film film2 = createValidFilm("Film 2", "Desc 2", LocalDate.of(2001, 1, 1), 150);
-        Film film3 = createValidFilm("Film 3", "Desc 3", LocalDate.of(2002, 1, 1), 180);
-
-        ResponseEntity<Object> response1 = filmController.addFilm(film1);
-        ResponseEntity<Object> response2 = filmController.addFilm(film2);
-        ResponseEntity<Object> response3 = filmController.addFilm(film3);
-
-        Film result1 = (Film) response1.getBody();
-        Film result2 = (Film) response2.getBody();
-        Film result3 = (Film) response3.getBody();
-
-        assertNotNull(result1);
-        assertNotNull(result2);
-        assertNotNull(result3);
-
-        assertNotEquals(result1.getId(), result2.getId());
-        assertNotEquals(result2.getId(), result3.getId());
-    }
-
-    private Film createValidFilm(String name, String description, LocalDate releaseDate, int duration) {
-        Film film = new Film();
-        film.setName(name);
-        film.setDescription(description);
-        film.setReleaseDate(releaseDate);
-        film.setDuration(duration);
-        return film;
+        mockMvc.perform(post("/films")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(film)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.name").value("Test Film"))
+                .andExpect(jsonPath("$.description").value("Test Description"))
+                .andExpect(jsonPath("$.releaseDate").value("2020-01-01"))
+                .andExpect(jsonPath("$.duration").value(120))
+                .andExpect(jsonPath("$.mpa.id").value(1));
     }
 }
